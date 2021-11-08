@@ -1,33 +1,58 @@
+BIN = lab3# namn på output-binären
 
-PORT = /dev/tty.usbmodem1401
-BAUD = 115200
-FILENAME = main
-FILENAME2 = serial
-FILENAME3 = leds
-FILENAME4 = pwmTimer
-DEVICE = atmega328p
-PROGRAMMER = arduino
-COMPILE = avr-gcc -Wall -Os -mmcu=${DEVICE}
+# Lista på C-ﬁler ingående i binären
+SOURCES = \
+		  main.c \
+		  serial.c \
+		  timer.c\
+		  button.c
 
-default: compile upload clean
+PORT = /dev/cu.usbmodem1101
+
+CC = avr-gcc
+LD=avr-ld
+OBJCOPY=avr-objcopy
+OBJDUMP=avr-objdump
+AVRSIZE=avr-size
+
+CFLAGS = -g -Wall -pedantic -O2 -DF_CPU=16000000UL -mmcu=atmega328p -c# Kompilatorﬂaggor
+LDFLAGS = -mmcu=atmega328p# Länkarﬂaggor
+
+OBJS = $(SOURCES:.c=.o)
+OUT=${BIN}.elf ${BIN}.hex ${BIN}.lss
+
+flash: all # Flasha/programmera arduinon – bygger vid behov
+	avrdude -F -V -c arduino -p ATMEGA328P -P $(PORT) -b 115200 -U flash:w:$(BIN).hex
 
 
-compile:
-	${COMPILE} -c ${FILENAME}.c -o ${FILENAME}.o
-	${COMPILE} -c ${FILENAME2}.c -o ${FILENAME2}.o
-	${COMPILE} -c ${FILENAME3}.c -o ${FILENAME3}.o
-	${COMPILE} -c ${FILENAME4}.c -o ${FILENAME4}.o
-	${COMPILE} -o ${FILENAME}.elf ${FILENAME}.o ${FILENAME2}.o ${FILENAME3}.o ${FILENAME4}.o
-	avr-objcopy -j .text -j .data -O ihex ${FILENAME}.elf ${FILENAME}.hex
-	avr-size --format=avr --mcu =${DEVICE} ${FILENAME}.elf 						# kontroll av size
+all: $(OUT) # Bygg rubbet, men ﬂasha inte till target
+    		# *.map Minneskonﬁguration = metadata
+    		# *.elf Exekverbar binär, kan tryckas in i en debugger/analysverktyg = maskinkod + data + debugsymboler
+    		# *.hex ELF strippad och konverterad till ihex – ﬂashas till arduinon = maskinkod + data
+    		# *.lss ELF’en översatt till assembler (!) + minnessegment + minnesinnehåll = assembler + data + metadata
 
-upload:
-	avrdude -v -p ${DEVICE} -c ${PROGRAMMER} -P ${PORT} -b ${BAUD} -U flash:w:${FILENAME}.hex:i
-clean:
+$(OBJS): makefile
 
-	rm ${FILENAME}.o
-	rm ${FILENAME2}.o
-	rm ${FILENAME3}.o
-	rm ${FILENAME4}.o
-	rm ${FILENAME}.elf
-	rm ${FILENAME}.hex
+%.o:%.c
+	$(CC) $(CFLAGS) -MD $< -o $@
+	@cp $*.d $*.P; \
+		sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+		-e '/^$$/ d' -e 's/$$/ :/' < $*.d >> $*.P; \
+		rm -f $*.d
+
+%.lss: %.elf
+	$(OBJDUMP) -h -S -s $< > $@
+
+%.elf: $(OBJS) # Länka
+	$(CC) -Wl,-Map=$(@:.elf=.map) $(LDFLAGS) -o $@ $^
+	$(AVRSIZE) $@
+
+%.hex: %.elf
+	$(OBJCOPY) -O ihex -R .fuse -R .lock -R .user_signatures -R .comment $< $@
+
+clean: # Rensa upp byggkatalogen
+	@echo " Cleaning...";
+	rm -f $(OUT) $(OBJS) *.map *.P *.out 
+
+screen: # öppna en serie terminal
+	screen $(PORT) 38400
