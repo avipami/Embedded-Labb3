@@ -1,13 +1,15 @@
-BIN = lab3# namn på output-binären
+BIN = Labb3
 
-# Lista på C-ﬁler ingående i binären
+# Makefile fr skolan då jag fick spöken på min egna Lista på C-ﬁler ingående i binären
 SOURCES = \
 		  main.c \
 		  serial.c \
+		  led.c \
 		  timer.c\
-		  button.c
+		  button.c\
+		  adc.c
 
-PORT = /dev/cu.usbmodem1101
+PORT = /dev/tty.usbmodem1101
 
 CC = avr-gcc
 LD=avr-ld
@@ -25,12 +27,7 @@ flash: all # Flasha/programmera arduinon – bygger vid behov
 	avrdude -F -V -c arduino -p ATMEGA328P -P $(PORT) -b 115200 -U flash:w:$(BIN).hex
 
 
-all: $(OUT) # Bygg rubbet, men ﬂasha inte till target
-    		# *.map Minneskonﬁguration = metadata
-    		# *.elf Exekverbar binär, kan tryckas in i en debugger/analysverktyg = maskinkod + data + debugsymboler
-    		# *.hex ELF strippad och konverterad till ihex – ﬂashas till arduinon = maskinkod + data
-    		# *.lss ELF’en översatt till assembler (!) + minnessegment + minnesinnehåll = assembler + data + metadata
-
+all: $(OUT) 
 $(OBJS): makefile
 
 %.o:%.c

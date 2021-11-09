@@ -12,6 +12,7 @@ void uart_init(void)
 	UCSR0A = 0;
 	UCSR0B = (1 << TXEN0 | 1 << RXEN0);
 	UCSR0C = (1 << UCSZ01 | 1 << UCSZ00);
+
 	stdout = &uart_stdout;
 }
 
@@ -21,13 +22,16 @@ int uart_putchar(char chr, FILE *stream)
 	{
 		uart_putchar('\r', NULL);
 	}
-	while (!(UCSR0A & (1 << UDRE0)));
+	while (!(UCSR0A & (1 << UDRE0)))
+		;
 	UDR0 = chr;
 	return 0;
 }
 
-char uart_getchar(void) {
-	while (!(UCSR0A & (1 << RXC0)));
+char uart_getchar(void) 
+{
+	while (!(UCSR0A & (1 << RXC0)))
+		;
 	return UDR0;
 }
 

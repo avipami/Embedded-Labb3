@@ -1,9 +1,11 @@
+
 #include "button.h"
 
 bool pushed= false;
 bool released= false;
 bool button_interrupted = false;
 bool timer_interrupted = false;
+
 
 void button_init()
 {
@@ -38,18 +40,19 @@ void button_func()
     }
 }
 
+
 void print_func()
 {
     if(timer_interrupted)
     {
-        if(pushed){
+        if(pushed)
+        {
             if(PINB & _BV(PB0))
             {
                 printf_P(PSTR("Pushed\r\n"));
             }
             pushed = false;
-        }
-        else if(released)
+        }else if(released)
         {
             if(!(PINB & _BV(PB0)))
             {

@@ -4,24 +4,39 @@
 #include <stdio.h>
 
 
+#include "adc.h"
 #include "led.h"
-#include "serial.h"
 #include "timer.h"
+#include "serial.h"
 #include "button.h"
 
 
+volatile uint8_t adc_value = 0; //volatile is a keyword that must be applied when 
+                                //declaring any variable that will reference a device register.
+ISR(ADC_vect)
+{
+    adc_value = ADCH;//adch data register
+}
+ISR(TIMER2_COMPA_vect)
+{
+    ADCSRA |= (1 << ADSC);
+    OCR0A = adc_value;
+}
+
 int main (void) 
 {
-	timer_init();
+    adc_init(); 
+	led_init();
 	uart_init();
+	timer_init();
     button_init();
     sei();
-	while (1) 
-	{
-	    button_func();
-	    print_func();
 
+	while (true) 
+    {
 	}
 	return 0;
 }
+
+
 
